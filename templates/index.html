@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assignment Submission Portal | {{ university }}</title>
+  <meta name="description" content="Official assignment submission portal for students of {{ university }}.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/crest.svg') }}" type="image/svg+xml">
+</head>
+<body>
+  <!-- Floating decorative background -->
+  <div class="bg-orbs" aria-hidden="true">
+    <span class="orb orb-1"></span><span class="orb orb-2"></span>
+    <span class="orb orb-3"></span><span class="orb orb-4"></span>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- Top navigation -->
+  <header class="topbar glass" id="top">
+    <a class="brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/crest.svg') }}" alt="" class="brand-crest" width="40" height="40">
+      <span class="brand-text">
+        <strong>{{ university }}</strong>
+        <small>Student Assignment Portal</small>
+      </span>
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#submit">Submit</a>
+      <a href="#guidelines">Guidelines</a>
+      <a href="#submissions">Submissions</a>
+      <span class="count-pill" title="Total submissions"><span class="pulse-dot"></span>{{ total }} saved</span>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-inner reveal">
+      <span class="eyebrow">Fall Semester 2026 &middot; Department of Computing</span>
+      <h1>Submit your work<br><span class="grad-text">with confidence.</span></h1>
+      <p class="lead">One secure place to hand in assignment links. Every submission is validated,
+        time-stamped and stored safely, so you always have proof of what you sent and when.</p>
+      <div class="hero-actions">
+        <a href="#submit" class="btn btn-primary btn-lg"><span>Start a submission</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#submissions" class="btn btn-ghost btn-lg">View submissions</a>
+      </div>
+    </div>
+
+    <div class="stats reveal" style="--delay:.15s">
+      <div class="stat glass">
+        <span class="stat-label">Total submissions</span>
+        <span class="stat-value" id="total-count" data-count="{{ total }}">{{ total }}</span>
+      </div>
+      <div class="stat glass">
+        <span class="stat-label">Link validation</span>
+        <span class="stat-value small">HTTP / HTTPS</span>
+      </div>
+      <div class="stat glass">
+        <span class="stat-label">Storage</span>
+        <span class="stat-value small">Persistent SQLite</span>
+      </div>
+    </div>
+  </section>
+
+  <main class="container">
+    <div class="layout">
+      <!-- Submission form -->
+      <section class="card form-card glass reveal" id="submit" aria-labelledby="form-title">
+        <div class="card-head">
+          <div class="icon-badge">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3v12m0-12l-4.5 4.5M12 3l4.5 4.5M4 15v3a3 3 0 003 3h10a3 3 0 003-3v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <h2 id="form-title">New submission</h2>
+            <p class="muted">All fields are required. Paste a link to your work (GitHub, Google Drive, OneDrive...).</p>
+          </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}" data-testid="flash-{{ category }}">
+              <span class="alert-icon" aria-hidden="true">{% if category == 'success' %}&#10003;{% else %}!{% endif %}</span>
+              <span class="alert-text">{{ message }}</span>
+              <button type="button" class="alert-close" aria-label="Dismiss message">&times;</button>
+            </div>
+          {% endfor %}
+        {% endwith %}
+
+        <form method="post" action="{{ url_for('submit') }}" id="submission-form" novalidate>
+          {% set fields = [
+            ('student_name', 'Student full name', 'text', 'e.g. Ayesha Khan', 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0'),
+            ('registration_number', 'Registration number', 'text', 'e.g. FA22-BSE-001', 'M4 6h16v12H4zM8 10h4M8 14h8'),
+            ('assignment_title', 'Assignment title', 'text', 'e.g. DevOps Mid Lab - CI/CD Pipeline', 'M6 3h9l5 5v13H6zM14 3v6h6'),
+            ('submission_url', 'Submission URL', 'url', 'https://github.com/username/repository', 'M10 14a4 4 0 005.66 0l3-3a4 4 0 00-5.66-5.66l-1 1M14 10a4 4 0 00-5.66 0l-3 3a4 4 0 005.66 5.66l1-1')
+          ] %}
+          {% for name, label, type, placeholder, icon in fields %}
+          <div class="field {% if errors.get(name) %}has-error{% endif %}">
+            <label for="{{ name }}">{{ label }} <span class="req" aria-hidden="true">*</span></label>
+            <div class="input-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="{{ icon }}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <input id="{{ name }}" name="{{ name }}" type="{{ type }}" placeholder="{{ placeholder }}"
+                     value="{{ form.get(name, '') }}" required autocomplete="off"
+                     aria-describedby="{{ name }}-error"
+                     {% if errors.get(name) %}aria-invalid="true"{% endif %}>
+              <span class="focus-ring" aria-hidden="true"></span>
+            </div>
+            <p class="field-error" id="{{ name }}-error" data-testid="error-{{ name }}">{{ errors.get(name, '') }}</p>
+          </div>
+          {% endfor %}
+
+          <button type="submit" class="btn btn-primary btn-block" id="submit-btn">
+            <span class="btn-label">Submit assignment</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+          <p class="fine-print">By submitting you confirm this is your own work, in line with the academic integrity policy.</p>
+        </form>
+      </section>
+
+      <!-- Guidelines -->
+      <aside class="card info-card reveal" id="guidelines" style="--delay:.1s">
+        <h3>Submission guidelines</h3>
+        <ol class="steps">
+          <li><span class="step-no">1</span><div><strong>Use your official name</strong><p>Exactly as it appears on your student ID card.</p></div></li>
+          <li><span class="step-no">2</span><div><strong>Check your registration number</strong><p>Format such as <code>FA22-BSE-001</code>. Submissions without it are rejected.</p></div></li>
+          <li><span class="step-no">3</span><div><strong>Share a working link</strong><p>Only <code>http://</code> or <code>https://</code> links are accepted. Make sure your instructor can open it.</p></div></li>
+          <li><span class="step-no">4</span><div><strong>Keep your receipt</strong><p>Every submission is time-stamped below as proof of submission.</p></div></li>
+        </ol>
+        <div class="help-box">
+          <strong>Need help?</strong>
+          <p>Contact the course instructor or the IT Help Desk during office hours.</p>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Saved submissions -->
+    <section class="submissions reveal" id="submissions" aria-labelledby="subs-title">
+      <div class="section-head">
+        <div>
+          <h2 id="subs-title">Recent submissions</h2>
+          <p class="muted">Newest first &middot; times shown in your local time zone</p>
+        </div>
+        <div class="total-badge" data-testid="total-submissions">Total submissions: <strong>{{ total }}</strong></div>
+      </div>
+
+      {% if submissions %}
+      <ul class="sub-list">
+        {% for s in submissions %}
+        <li class="sub-item {% if just_submitted and loop.first %}is-new{% endif %}" data-testid="submission-row">
+          <div class="avatar" aria-hidden="true">{{ s.student_name[:1] | upper }}</div>
+          <div class="sub-main">
+            <div class="sub-title">{{ s.assignment_title }}</div>
+            <div class="sub-meta">
+              <span class="sub-name">{{ s.student_name }}</span>
+              <span class="chip">{{ s.registration_number }}</span>
+            </div>
+            <a class="sub-link" href="{{ s.submission_url }}" target="_blank" rel="noopener noreferrer">{{ s.submission_url }}</a>
+          </div>
+          <div class="sub-time">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <time datetime="{{ s.submitted_at }}">{{ s.submitted_at | pretty_time }}</time>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state" data-testid="empty-state">
+        <div class="empty-illus" aria-hidden="true">&#128218;</div>
+        <h3>No submissions yet</h3>
+        <p>Be the first to submit. Your submission will appear here instantly.</p>
+      </div>
+      {% endif %}
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2026 {{ university }} &middot; Office of Academic Affairs &middot; Built with Flask, SQLite &amp; GitHub Actions</p>
+  </footer>
+
+  {% if just_submitted %}
+  <!-- Animated success feedback -->
+  <div class="success-overlay" id="success-overlay" role="dialog" aria-live="polite" aria-label="Submission successful">
+    <div class="success-card">
+      <svg class="checkmark" viewBox="0 0 52 52" aria-hidden="true">
+        <circle class="checkmark-circle" cx="26" cy="26" r="24" fill="none"/>
+        <path class="checkmark-check" fill="none" d="M14 27l8 8 16-16"/>
+      </svg>
+      <h3>Submission received!</h3>
+      <p>Your assignment has been saved and time-stamped.</p>
+      <button type="button" class="btn btn-primary" id="success-close">Great, thanks</button>
+    </div>
+    <div class="confetti" aria-hidden="true"></div>
+  </div>
+  {% endif %}
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

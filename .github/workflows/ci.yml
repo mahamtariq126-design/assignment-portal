@@ -1,0 +1,109 @@
+# ============================================================================
+#  CI - Tests and Reports
+#
+#  WHEN does it run?
+#    * push          -> every push to ANY branch  (branches: '**')
+#    * pull_request  -> every pull request whose TARGET is main
+#    * workflow_dispatch -> manual "Run workflow" button (handy for retries)
+#
+#  WHAT does it do?
+#    1. checkout  2. set up Python  3. install deps  4. run pytest
+#    5. print every individual test result (+ job summary table)
+#    6. upload testreport.json as an artifact
+#    7. send testreport.json to YOUR computer through the Cloudflare Tunnel
+#    8. (optional) e-mail the report
+#    9. fail the job if any test failed
+#
+#  Steps 5-8 use  if: ${{ !cancelled() }}  so they ALSO run after a failing
+#  pytest step. That is how a FAIL report still reaches your computer.
+# ============================================================================
+name: CI - Tests and Reports
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run pytest and deliver report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      TEST_REPORT_PATH: reports/testreport.json
+      # For pull requests use the PR's source branch and head commit;
+      # for pushes use the pushed branch and commit.
+      REPORT_BRANCH: ${{ github.head_ref || github.ref_name }}
+      REPORT_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: "1. Checkout the correct revision"
+        # push         -> the exact commit that was pushed (github.sha)
+        # pull_request -> GitHub's test-merge of the PR into main, i.e. exactly
+        #                 what main will look like if you click "Merge".
+        uses: actions/checkout@v6
+
+      - name: "2. Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: "3. Install dependencies"
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: "4. Run automated tests (pytest)"
+        id: pytest
+        # pytest exits non-zero if any test fails -> this step turns red.
+        # conftest.py writes the JSON report in both cases.
+        run: python -m pytest
+
+      - name: "5. Show individual test results"
+        if: ${{ !cancelled() }}
+        run: python scripts/show_report.py reports/testreport.json
+
+      - name: "6. Upload test report artifact"
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: testreport-run${{ github.run_id }}-attempt${{ github.run_attempt }}
+          path: reports/testreport.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: "7. Deliver report to local computer (Cloudflare Tunnel)"
+        if: ${{ !cancelled() }}
+        env:
+          REPORT_RECEIVER_URL: ${{ secrets.REPORT_RECEIVER_URL }}
+          REPORT_TOKEN: ${{ secrets.REPORT_TOKEN }}
+        run: python scripts/send_report.py reports/testreport.json
+
+      - name: "8. E-mail report (optional bonus)"
+        if: ${{ !cancelled() }}
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        run: python scripts/send_email_report.py reports/testreport.json
+
+      - name: "9. Fail the job if any test failed"
+        if: ${{ !cancelled() }}
+        run: |
+          python - <<'EOF'
+          import json, sys
+          r = json.load(open("reports/testreport.json", encoding="utf-8"))
+          s = r["summary"]
+          print(f"Overall result: {r['overall_result']}  ({s['passed']} passed, {s['failed']} failed)")
+          sys.exit(0 if r["overall_result"] == "PASS" else 1)
+          EOF

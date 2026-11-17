@@ -1,0 +1,25 @@
+#!/bin/sh
+# ---------------------------------------------------------------------------
+# OPTIONAL local Git hook: runs the test suite automatically after a
+# successful "git pull" (a pull = fetch + merge, and this hook fires after
+# the merge part). It runs ONLY on your computer - it does NOT trigger
+# GitHub Actions. It does not run when git says "Already up to date."
+#
+# Enable it once with:   git config core.hooksPath .githooks
+# Disable it with:       git config --unset core.hooksPath
+# ---------------------------------------------------------------------------
+echo ""
+echo "[post-merge hook] New changes were pulled - running tests locally..."
+if [ -x ".venv/Scripts/python.exe" ]; then
+  PY=".venv/Scripts/python.exe"
+elif [ -x ".venv/bin/python" ]; then
+  PY=".venv/bin/python"
+else
+  PY="python"
+fi
+if "$PY" -m pytest -q; then
+  echo "[post-merge hook] All tests passed after pull."
+else
+  echo "[post-merge hook] WARNING: some tests FAILED after pull. See output above."
+fi
+exit 0

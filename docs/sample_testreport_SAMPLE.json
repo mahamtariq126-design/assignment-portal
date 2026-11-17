@@ -1,0 +1,57 @@
+{
+  "_SAMPLE_NOTICE": "THIS IS A SAMPLE FILE ONLY. It shows the FORMAT of the report. It is NOT an actual test result and was NOT produced by any real GitHub Actions run. Real reports are created by conftest.py in reports/testreport.json and received in received_reports/testreport.json.",
+  "report_type": "pytest-json-report",
+  "report_version": 1,
+  "generated_by": "SAMPLE - hand-written example",
+  "repository": "YOUR-USERNAME/assignment-portal",
+  "branch": "feature/demo-defect",
+  "commit_sha": "0000000000000000000000000000000000000000",
+  "tested_sha": "0000000000000000000000000000000000000000",
+  "run_id": "SAMPLE-0000000000",
+  "run_number": "0",
+  "run_attempt": "1",
+  "workflow": "CI - Tests and Reports",
+  "event": "push",
+  "actor": "YOUR-USERNAME",
+  "run_url": "https://github.com/YOUR-USERNAME/assignment-portal/actions/runs/SAMPLE-0000000000",
+  "environment": "github-actions",
+  "python_version": "3.12.x",
+  "platform": "Linux (sample)",
+  "execution_timestamp": "2026-01-01T00:00:00+00:00",
+  "summary": {
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
+    "errors": 0,
+    "skipped": 0,
+    "duration_seconds": 0.0
+  },
+  "overall_result": "FAIL",
+  "pytest_exit_status": 1,
+  "tests": [
+    {
+      "name": "test_01_valid_submission_is_saved_and_displayed",
+      "nodeid": "tests/test_portal.py::test_01_valid_submission_is_saved_and_displayed",
+      "status": "passed",
+      "duration_seconds": 0.0,
+      "failure_message": null,
+      "failure_details": null
+    },
+    {
+      "name": "test_02_missing_registration_number_is_rejected",
+      "nodeid": "tests/test_portal.py::test_02_missing_registration_number_is_rejected",
+      "status": "failed",
+      "duration_seconds": 0.0,
+      "failure_message": "[call] AssertionError: Missing registration number must be rejected (HTTP 400)\nassert 302 == 400",
+      "failure_details": "SAMPLE traceback text would appear here"
+    },
+    {
+      "name": "test_03_invalid_url_is_rejected",
+      "nodeid": "tests/test_portal.py::test_03_invalid_url_is_rejected",
+      "status": "passed",
+      "duration_seconds": 0.0,
+      "failure_message": null,
+      "failure_details": null
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+# ============================================================================
+#  OPTIONAL BONUS - Deploy the static demo (site/) to GitHub Pages
+#
+#  Safety rules:
+#    * runs only AFTER the "CI - Tests and Reports" workflow COMPLETES
+#    * deploys only if that run SUCCEEDED, was a PUSH, and was on MAIN
+#    * failed test runs never publish a new version
+#    * tests are executed once more on the exact commit before deploying
+#
+#  It stays switched OFF until you create a repository VARIABLE:
+#      Settings > Secrets and variables > Actions > Variables tab
+#      Name: ENABLE_PAGES   Value: true
+#  and set  Settings > Pages > Source = "GitHub Actions".
+#
+#  NOTE: GitHub Pages only hosts static files (HTML/CSS/JS). It cannot run
+#  Python/Flask or SQLite, so the Pages site is a front-end DEMO only.
+# ============================================================================
+name: Deploy GitHub Pages (after tests pass)
+
+on:
+  workflow_run:
+    workflows: ["CI - Tests and Reports"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy static demo
+    if: >-
+      vars.ENABLE_PAGES == 'true' &&
+      (
+        (github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.event == 'push' &&
+         github.event.workflow_run.head_branch == 'main')
+        ||
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      )
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout the commit that passed CI
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Re-run tests on this exact commit (safety gate)
+        env:
+          REPORT_BRANCH: main
+          REPORT_COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          pip install -r requirements.txt
+          python -m pytest -q
+
+      - name: Build static site
+        run: |
+          mkdir -p _site/css _site/img
+          cp -r site/. _site/
+          cp static/css/style.css _site/css/style.css
+          cp static/img/crest.svg _site/img/crest.svg
+          cp reports/testreport.json _site/testreport.json
+          echo "Built files:" && find _site -type f
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

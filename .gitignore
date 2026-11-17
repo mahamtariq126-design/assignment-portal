@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local data (never commit the database or generated reports)
+instance/
+*.db
+reports/
+received_reports/
+_site/
+
+# Secrets - NEVER commit these
+.receiver_token
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
