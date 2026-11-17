@@ -94,7 +94,7 @@ def validate_submission(form):
     # 2. Registration number
     reg_no = data["registration_number"]
     if not reg_no:
-        errors["registration_number"] = "Registration number is required."  # REG-REQUIRED-CHECK
+        pass  # DEFECT (demo): registration number check disabled  # REG-REQUIRED-CHECK
     elif len(reg_no) > MAX_REG or not REG_PATTERN.match(reg_no):
         errors["registration_number"] = (
             "Registration number may contain only letters, digits, '-', '/', '_' "
