@@ -97,3 +97,7 @@ failure_message], summary{total, passed, failed}, overall_result.
 | [docs/SCREENSHOT_CHECKLIST.md](docs/SCREENSHOT_CHECKLIST.md) | Exact screenshots to capture |
 | [docs/BONUS_PAGES_EMAIL.md](docs/BONUS_PAGES_EMAIL.md) | GitHub Pages + e-mail reports |
 | [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md) | Honest status of every requirement |
+
+Automatic report delivery verification.
+
+Automatic report delivery verification.
